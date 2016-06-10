@@ -74,7 +74,7 @@ namespace MvcCms.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Delete(string tag)
+        public ActionResult Delete(string tag, bool foo)
         {
 
             if (!_repository.Exists(tag))

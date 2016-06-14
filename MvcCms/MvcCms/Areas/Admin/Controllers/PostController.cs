@@ -24,6 +24,7 @@ namespace MvcCms.Areas.Admin.Controllers
         }
 
         // GET: Admin/Post
+        [Route("")]
         public ActionResult Index()
         {
             var posts = _repository.GetAll();
@@ -35,9 +36,7 @@ namespace MvcCms.Areas.Admin.Controllers
         [Route("create")]
         public ActionResult Create()
         {
-            var model = new Post() { Tags = new List<string>() { "test-1", "test-2" } };
-
-            return View(model);
+            return View(new Post());
         }
 
         // /admin/post/create
@@ -51,9 +50,28 @@ namespace MvcCms.Areas.Admin.Controllers
                 return View(model);
             }
 
-            // TODO: update model in data store
-            _repository.Create(model);
-            return RedirectToAction("index");
+            if (string.IsNullOrWhiteSpace(model.Id))
+            {
+                model.Id = model.Title;
+            }
+
+            model.Id = model.Id.MakeUrlFriendly();
+            model.Tags = model.Tags.Select(tag => tag.MakeUrlFriendly()).ToList();
+
+            model.Created = DateTime.Now;
+
+            model.AuthorId = "7b83f49b-7659-46ed-a6c0-71e2102d836c";
+
+            try
+            {
+                _repository.Create(model);
+                return RedirectToAction("index");
+            }
+            catch (Exception e)
+            {
+                ModelState.AddModelError("key", e);
+                return View(model);
+            }
         }
 
         // /admin/post/edit/post-to-edit
@@ -78,6 +96,43 @@ namespace MvcCms.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit(string postId, Post model)
         {
+          
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+            if (string.IsNullOrWhiteSpace(model.Id))
+            {
+                model.Id = model.Title;
+            }
+
+            model.Id = model.Id.MakeUrlFriendly();
+            model.Tags = model.Tags.Select(tag => tag.MakeUrlFriendly()).ToList();
+
+            try
+            {
+                _repository.Edit(postId, model);
+
+                return RedirectToAction("index");
+            }
+            catch (KeyNotFoundException e)
+            {
+                return HttpNotFound();
+            }
+            catch (Exception e)
+            {
+                ModelState.AddModelError(string.Empty, e.Message);
+                return View(model);
+            }
+        }
+
+        // /admin/post/delete/post-to-edit
+        [HttpGet]
+        [Route("delete/{postId}")]
+        public ActionResult Delete(string postId)
+        {
+            
             var post = _repository.Get(postId);
 
             if (post == null)
@@ -85,15 +140,27 @@ namespace MvcCms.Areas.Admin.Controllers
                 return HttpNotFound();
             }
 
-            if (!ModelState.IsValid)
+            return View(post);
+        }
+
+        // /admin/post/delete/post-to-edit
+        [HttpPost]
+        [Route("delete/{postId}")]
+        [ValidateAntiForgeryToken]
+        public ActionResult Delete(string postId, string foo)
+        {
+
+            try
             {
-                return View(model);
+                _repository.Delete(postId);
+
+                return RedirectToAction("index");
             }
-
-            // TODO: update model in data store
-            _repository.Edit(postId, model);
-
-            return RedirectToAction("index");
+            catch (KeyNotFoundException e)
+            {
+                return HttpNotFound();
+            }
+            
         }
     }
 }

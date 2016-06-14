@@ -7,9 +7,13 @@ using System.Web.Mvc;
 
 namespace MvcCms.Areas.Admin.Controllers
 {
+    [RouteArea("admin")]
+    [RoutePrefix("tag")]
     public class TagController : Controller
     {
         private readonly ITagRepository _repository;
+
+        public TagController() : this(new TagRepository()) { }
 
         public TagController(ITagRepository repository)
         {
@@ -17,6 +21,7 @@ namespace MvcCms.Areas.Admin.Controllers
         }
 
         // GET: Admin/Tag
+        [Route("")]
         public ActionResult Index()
         {
             var tags = _repository.GetAll();
@@ -24,18 +29,24 @@ namespace MvcCms.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [Route("edit/{tag}")]
         public ActionResult Edit(string tag)
         {
-            if (!_repository.Exists(tag))
+            try
+            {
+                var model = _repository.Get(tag);
+                return View(model: model);
+            }
+            catch (KeyNotFoundException e)
             {
                 return HttpNotFound();
             }
-
-            return View(tag);
+            
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Route("edit/{tag}")]
         public ActionResult Edit(string tag, string newTag)
         {
             var tags = _repository.GetAll();
@@ -53,7 +64,7 @@ namespace MvcCms.Areas.Admin.Controllers
             if (string.IsNullOrWhiteSpace(newTag))
             {
                 ModelState.AddModelError("key", "New tag value cannot be empty.");
-                return View(tag);
+                return View(model: tag);
             }
 
             _repository.Edit(tag, newTag);
@@ -62,28 +73,36 @@ namespace MvcCms.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [Route("delete/{tag}")]
         public ActionResult Delete(string tag)
         {
-            if (!_repository.Exists(tag))
+            try
+            {
+                var model = _repository.Get(tag);
+                return View(model: model);
+            }
+            catch (KeyNotFoundException e)
             {
                 return HttpNotFound();
             }
-
-            return View(tag);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Delete(string tag, bool foo)
+        [Route("delete/{tag}")]
+        public ActionResult Delete(string tag, string foo)
         {
 
-            if (!_repository.Exists(tag))
+            try
+            {
+                _repository.Delete(tag);
+
+                return RedirectToAction("index");
+            }
+            catch (KeyNotFoundException e)
             {
                 return HttpNotFound();
             }
-            _repository.Delete(tag);
-
-            return RedirectToAction("index");
         }
     }
 }
